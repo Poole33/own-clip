@@ -9,16 +9,19 @@
 ![macOS](https://img.shields.io/badge/macOS-14%2B-000000?style=flat-square&logo=apple)
 ![Swift](https://img.shields.io/badge/Swift-Native-F05138?style=flat-square&logo=swift&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/Dependencies-0-307A59?style=flat-square)
+[![Release](https://img.shields.io/github/v/release/Poole33/own-clip?style=flat-square)](https://github.com/Poole33/own-clip/releases/latest)
 
-[设计理念](#设计理念) · [功能](#功能) · [安装](#安装) · [使用指南](docs/usage.md) · [开发指南](docs/development.md)
+[下载最新版本](https://github.com/Poole33/own-clip/releases/latest) · [设计理念](#设计理念) · [功能](#功能) · [安装](#安装) · [使用指南](docs/usage.md) · [开发指南](docs/development.md)
 
 </div>
 
 ## 为什么做 OwnClip
 
-每天都在复制和粘贴：找回刚才复制的一段文字，把几条内容依次填进表单，或把 Finder 里的文件剪切到另一个文件夹。
+我试过不少同类产品，却一直没找到一款足够轻量、功能克制，专注剪贴板，又能同时满足**文件/文字剪切、顺序粘贴和剪贴板历史**这三个需求的工具。
 
-OwnClip 围绕这些高频操作，补上几个顺手的小功能。它常驻菜单栏，按下快捷键就能呼出，用完回到手头的工作。
+找回刚才复制的一段文字，把几条内容依次填进表单，或把 Finder 里的文件剪切到另一个文件夹，都是我每天反复遇到的场景。
+
+于是有了 OwnClip。它围绕这些高频操作，补上几个顺手的小功能，保持小巧，也保持专注。常驻菜单栏，按下快捷键就能呼出，用完回到手头的工作。
 
 > 如果在使用的某一瞬间，你觉得“这本来就是 macOS 的功能”，OwnClip 就做对了。
 
@@ -27,7 +30,7 @@ OwnClip 围绕这些高频操作，补上几个顺手的小功能。它常驻菜
 - **轻量。** 使用 Swift、AppKit 和 SwiftUI，直接调用系统框架，零第三方依赖，让应用保持小巧。
 - **做减法。** 功能取舍围绕复制、剪切和粘贴，保持清晰的使用范围。
 - **高频优先。** 每个新功能都应解决日常反复遇到的问题；增加功能前，先考虑能否把现有操作做得更顺手。
-- **原生体验。** 使用系统窗口材质、选中颜色和标准键盘操作，跟随浅色与深色外观，也尊重系统的“降低透明度”设置。
+- **原生体验。** 使用系统窗口材质、选中颜色和标准键盘操作，跟随浅色与深色外观，也尊重系统的“降低透明度”设置，不花里胡哨，尽量给你原生般的体验。
 
 **应用本体约 0.8 MB。** 本机已安装的 OwnClip 1.0.9 应用包（`OwnClip.app`）内文件合计 791,621 字节，实测于 2026-11-19；体积会随版本、架构及签名方式变化。
 
@@ -55,13 +58,13 @@ OwnClip 围绕这些高频操作，补上几个顺手的小功能。它常驻菜
 
 需要 **macOS 14 或更高版本**。现有安装包面向 Apple Silicon；构建脚本支持按当前 Mac 架构编译，也可通过 `OWNCLIP_ARCH` 指定 `arm64` 或 `x86_64`。
 
-仓库目前尚未提供 GitHub Release，可按下方说明从源码构建 DMG。获得安装包后：
+从 [GitHub Releases](https://github.com/Poole33/own-clip/releases/latest) 下载最新版本，或[直接下载 OwnClip.dmg](https://github.com/Poole33/own-clip/releases/latest/download/OwnClip.dmg)。
 
 1. 打开 `OwnClip.dmg`，将 `OwnClip.app` 拖入“应用程序”。
 2. 启动 OwnClip，按提示在“系统设置 → 隐私与安全性”中授予自动粘贴所需权限。
 3. 如系统提示访问剪贴板或启用输入监控，按引导完成授权。
 
-本地自签名安装包首次打开时，可能需要在“隐私与安全性”中确认打开。授权未生效等问题见[使用指南](docs/usage.md)。
+当前发布版本使用本地自签名，未经 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认打开。授权未生效等问题见[使用指南](docs/usage.md)。
 
 ## 常用快捷键
 

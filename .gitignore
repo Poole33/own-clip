@@ -1,0 +1,31 @@
+# macOS 系统文件
+.DS_Store
+._*
+
+# 编译缓存、临时构建目录
+/.build/
+/.build.*/
+
+# 应用、安装包和调试符号
+/dist/
+*.dSYM/
+
+# Swift 编译生成文件
+*.swiftmodule
+*.swiftdoc
+*.swiftsourceinfo
+*.abi.json
+
+# 本地环境配置
+.env
+.env.*
+!.env.example
+
+# 签名私钥及身份备份
+*.key
+*.p12
+*.pfx
+
+# 设计探索素材，当前构建不依赖
+# 如果希望一并公开设计稿，删除下面这一行
+/design/

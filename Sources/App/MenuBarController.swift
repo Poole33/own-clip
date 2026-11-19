@@ -14,9 +14,8 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     func rebuild() {
         let item = statusItem ?? NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        let icon = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "OwnClip")
-        icon?.isTemplate = true
-        item.button?.image = icon
+        item.button?.image = OwnClipIcon.menuBarImage()
+        item.button?.setAccessibilityLabel("OwnClip")
         item.button?.toolTip = statusMessage.map { "OwnClip · \($0.text)" } ?? "OwnClip"
         let menu = NSMenu()
         menu.delegate = self

@@ -53,8 +53,15 @@ test -f "$symbols/Contents/Resources/DWARF/OwnClip"
 /usr/bin/strip -x "$executable"
 /usr/bin/install -m 644 "$project_dir/Resources/Info.plist" "$app/Contents/Info.plist"
 /usr/bin/plutil -lint "$app/Contents/Info.plist"
-/usr/bin/xcrun swift "$project_dir/Tools/make-icon.swift" "$work_dir/OwnClip.png"
-/usr/bin/sips -s format icns "$work_dir/OwnClip.png" --out "$app/Contents/Resources/OwnClip.icns" >/dev/null
+/usr/bin/xcrun swiftc -swift-version 5 "$project_dir/Sources/UI/OwnClipIcon.swift" \
+    "$project_dir/Tools/make-icon.swift" -o "$work_dir/make-icon"
+iconset="$work_dir/OwnClip.iconset"
+mkdir -- "$iconset"
+for icon_size in 16 32 128 256 512; do
+    "$work_dir/make-icon" "$iconset/icon_${icon_size}x${icon_size}.png" "$icon_size"
+    "$work_dir/make-icon" "$iconset/icon_${icon_size}x${icon_size}@2x.png" "$((icon_size * 2))"
+done
+/usr/bin/iconutil -c icns "$iconset" -o "$app/Contents/Resources/OwnClip.icns"
 /usr/bin/codesign "${signing_options[@]}" "$app"
 /usr/bin/codesign --verify --strict "$app"
 

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="Resources/OwnClip.png" width="112" height="112" alt="OwnClip Logo">
+
 # OwnClip
 
 **免费开源，轻量、克制、原生的 macOS 剪贴板工具。**

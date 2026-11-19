@@ -1,27 +1,34 @@
 import AppKit
 
-let pixel = 512
-let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixel, pixelsHigh: pixel,
-                              bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                              colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
-NSGraphicsContext.saveGraphicsState()
-NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
-let transform = NSAffineTransform()
-transform.scale(by: CGFloat(pixel) / 128)
-transform.concat()
-
-let blue = NSColor(srgbRed: 0.18, green: 0.43, blue: 0.88, alpha: 1)
-blue.setFill()
-NSBezierPath(roundedRect: NSRect(x: 10, y: 10, width: 108, height: 108), xRadius: 25, yRadius: 25).fill()
-NSColor.white.withAlphaComponent(0.30).setFill()
-NSBezierPath(roundedRect: NSRect(x: 38, y: 31, width: 64, height: 63), xRadius: 9, yRadius: 9).fill()
-NSColor.white.setFill()
-NSBezierPath(roundedRect: NSRect(x: 27, y: 26, width: 60, height: 72), xRadius: 10, yRadius: 10).fill()
-blue.setFill()
-NSBezierPath(roundedRect: NSRect(x: 42, y: 87, width: 30, height: 15), xRadius: 5, yRadius: 5).fill()
-blue.withAlphaComponent(0.65).setFill()
-for (y, width) in [(68, 31), (56, 31), (44, 20)] {
-    NSBezierPath(roundedRect: NSRect(x: 41, y: CGFloat(y), width: CGFloat(width), height: 4), xRadius: 2, yRadius: 2).fill()
+/// Compile with Sources/UI/OwnClipIcon.swift so app and exports share one renderer.
+@main
+enum MakeIcon {
+    static func main() throws {
+        let arguments = CommandLine.arguments
+        guard arguments.count >= 2 else {
+            FileHandle.standardError.write(Data("Usage: make-icon output.png [pixels] [--menu]\n".utf8))
+            exit(1)
+        }
+        let pixel = arguments.count > 2 ? Int(arguments[2]) ?? 1024 : 1024
+        guard pixel > 0, pixel <= 4096 else {
+            FileHandle.standardError.write(Data("Image size must be 1–4096 pixels.\n".utf8))
+            exit(1)
+        }
+        let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixel, pixelsHigh: pixel,
+                                      bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                                      isPlanar: false, colorSpaceName: .deviceRGB,
+                                      bytesPerRow: 0, bitsPerPixel: 0)!
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        let context = NSGraphicsContext.current!.cgContext
+        let rect = CGRect(x: 0, y: 0, width: pixel, height: pixel)
+        if arguments.contains("--menu") {
+            OwnClipIcon.drawTemplate(in: context, rect: rect)
+        } else {
+            OwnClipIcon.drawApplicationIcon(in: context, rect: rect)
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        try bitmap.representation(using: .png, properties: [:])!
+            .write(to: URL(fileURLWithPath: arguments[1]), options: .atomic)
+    }
 }
-NSGraphicsContext.restoreGraphicsState()
-try bitmap.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: CommandLine.arguments[1]))

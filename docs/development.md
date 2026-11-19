@@ -34,6 +34,7 @@
 - 面板材质、选中颜色：`Sources/UI/PanelStyle.swift`。
 - 快捷键默认值与作用范围：`Sources/Platform/Shortcuts/ShortcutSettings.swift`。
 - 中英文界面文案：`Sources/Localization/AppText.swift`。
+- 应用和菜单栏标志：`Sources/UI/OwnClipIcon.swift`；README 图标位于 `Resources/OwnClip.png`，矢量母版为 `Resources/OwnClip.svg`。`Tools/make-icon.swift` 与应用共用绘制代码，构建时生成完整多尺寸 ICNS。本机完整设计资源和使用规范位于 `Resources/Brand/`，按当前 `.gitignore` 保留为本地素材。
 
 新增 Swift 文件放在对应职责目录即可，构建和测试脚本会递归收集源码。测试排除应用入口，编译其余全部源码，以覆盖文件拆分后的集成关系。测试使用独立剪贴板、临时目录和独立偏好设置，不发送真实粘贴按键。
 

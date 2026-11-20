@@ -20,12 +20,18 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
     @Published private(set) var days = 1
     @Published private(set) var loginItemStatus: SMAppService.Status = .notRegistered
     @Published private(set) var loginItemError: AppMessage?
+    @Published private(set) var menuBarIconVisible = true
     @Published private(set) var finderCutEnabled = false
     @Published private(set) var restartedForPaste = false
     @Published private(set) var contextKeysReady = false
     @Published private(set) var contextKeysWanted = false
-    @Published var settingsTab: SettingsTab = .general
+    @Published var settingsTab: SettingsTab = .general {
+        didSet {
+            if settingsTab == .general, oldValue != .general { updates.check() }
+        }
+    }
     @Published var notice: AppMessage?
+    let updates = UpdateService()
 
     private let clipboard = ClipboardMonitor()
     private lazy var finderMoves = FinderMoveService(clipboard: clipboard)
@@ -99,8 +105,8 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
         } catch { notice = .init(AppText.errorDescription(error)) }
 
         connectServices()
-        menuBar.rebuild()
         shortcutService.start()
+        menuBar.rebuild(shortcuts: shortcuts)
         contextKeys.onKeyDown = { [weak self] event in self?.intercept(event) == true }
         refreshPermissions()
         refreshLoginItemStatus()
@@ -126,12 +132,16 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
             }
             rememberFrontApp()
             let active = event.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            if let active, active.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+                windows.cancelSettingsFocus()
+            }
             permissions.observeActiveApplication(active)
         }
         windowObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification,
                                                                   object: nil, queue: .main) { [weak self] event in
             guard let self, event.object as? NSWindow === settingsWindow else { return }
             recordSettingsFocus("settings.willClose")
+            windows.cancelSettingsFocus()
             recording = nil
             DispatchQueue.main.async { [weak self] in self?.restoreHistoryFocus() }
         }
@@ -150,6 +160,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
                 if firstPermissionPrompt && !restartedForPaste { showPasteAccessOnboarding() }
             }
         }
+        updates.check()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -160,6 +171,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         guard pollTimer != nil else { return }
+        windows.focusSettingsAfterActivation()
         refreshLanguage()
         recordSettingsFocus("application.didBecomeActive")
         refreshPermissions()
@@ -167,6 +179,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     func applicationDidResignActive(_ notification: Notification) {
+        windows.cancelSettingsFocus()
         recordSettingsFocus("application.didResignActive")
     }
 
@@ -187,7 +200,11 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
         shortcutService.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &serviceObservations)
         shortcutService.onAction = { [weak self] action in self?.globalAction(action) }
-        shortcutService.onBindingsChange = { [weak self] in self?.refreshPermissions() }
+        shortcutService.onBindingsChange = { [weak self] in
+            guard let self else { return }
+            menuBar.rebuild(shortcuts: shortcuts)
+            refreshPermissions()
+        }
         permissions.onAccessChange = { [weak self] in self?.updateContextKeys() }
         finderMoves.beforeCopy = { [weak self] in self?.pollClipboard() }
         finderMoves.onCapture = { [weak self] payload in self?.save(payload) }
@@ -197,6 +214,10 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
         menuBar.onShowStack = { [weak self] in self?.showStack() }
         menuBar.onShowSettings = { [weak self] in self?.showSettingsFromStatusMenu() }
         menuBar.onCloseWindow = { [weak self] in _ = self?.closeWindow(NSApp.keyWindow) }
+        menuBar.onVisibilityChange = { [weak self] visible in
+            guard let self, menuBarIconVisible != visible else { return }
+            menuBarIconVisible = visible
+        }
         menuBar.onTrackingChange = { [weak self] tracking in
             self?.recordSettingsFocus(tracking ? "menu.willOpen" : "menu.didClose")
         }
@@ -316,6 +337,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
         refreshPermissions()
         refreshLoginItemStatus()
         windows.showSettings(model: self, on: screen)
+        if settingsTab == .general { updates.check() }
     }
 
     private func recordSettingsFocus(_ phase: String) { windows.recordSettingsFocus(phase) }
@@ -348,7 +370,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
         let resolved = AppText.resolvedLanguage
         guard force || interfaceLanguage != resolved else { return }
         interfaceLanguage = resolved
-        menuBar.rebuild()
+        menuBar.rebuild(shortcuts: shortcuts)
         settingsWindow?.title = AppText.text("OwnClip 设置")
         historyPanel?.title = AppText.History.windowTitle
         stackPanel?.title = AppText.SequentialPaste.windowTitle
@@ -362,6 +384,8 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     var launchAtLogin: Bool { loginItemStatus == .enabled || loginItemStatus == .requiresApproval }
+
+    func setMenuBarIconVisible(_ visible: Bool) { menuBar.setVisible(visible) }
 
     func setLaunchAtLogin(_ enabled: Bool) {
         loginItemError = nil

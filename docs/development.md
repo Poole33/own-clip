@@ -49,7 +49,7 @@
 
 初始化脚本会生成有效期 10 年的 `OwnClip Local Code Signing` 自签名证书，将证书和私钥导入当前用户的默认钥匙串，并仅为代码签名设置信任；macOS 可能弹出确认窗口。重复运行会复用已有证书，不会重新生成。若已有证书缺少私钥、过期或未受信任，脚本会报错，应修复原证书而不是新建同名证书。可用 `./Tools/setup-signing.sh --check` 只检查配置。
 
-输出为 `dist/OwnClip.app`、`dist/OwnClip.dmg` 和 `dist/OwnClip.app.dSYM`。只构建应用和调试符号时可运行 `./build.sh --app-only`。默认使用当前架构和固定的本地证书；证书不存在或不可用时会停止，不会退回临时签名。也可通过 `OWNCLIP_SIGN_IDENTITY` 指定其他证书的完整名称或 SHA-1 指纹；不接受 `-` 临时签名。发布时按版本保留应用和 `.dSYM`，用 `xcrun dwarfdump --uuid` 核对它们与崩溃报告中的 UUID 一致。
+输出为 `dist/OwnClip.app`、`dist/OwnClip-<版本号>.dmg` 和 `dist/OwnClip.app.dSYM`。DMG 文件名使用应用 `Info.plist` 中的 `CFBundleShortVersionString`，例如 `dist/OwnClip-1.0.9.dmg`。只构建应用和调试符号时可运行 `./build.sh --app-only`。默认使用当前架构和固定的本地证书；证书不存在或不可用时会停止，不会退回临时签名。也可通过 `OWNCLIP_SIGN_IDENTITY` 指定其他证书的完整名称或 SHA-1 指纹；不接受 `-` 临时签名。发布时按版本保留应用和 `.dSYM`，用 `xcrun dwarfdump --uuid` 核对它们与崩溃报告中的 UUID 一致。
 
 可将同一份签好的安装包用于多台 Mac；每台 Mac 首次安装仍需单独授予权限，之后使用同一签名身份升级。其他电脑只需安装应用，无需导入签名私钥。自签名不等于 Apple Developer ID 或公证，下载后首次打开仍可能需要在系统设置中允许。
 
@@ -64,4 +64,4 @@ OWNCLIP_SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)' \
 OWNCLIP_NOTARY_PROFILE='OwnClip' ./build.sh
 ```
 
-脚本会启用 Hardened Runtime，签名并提交 DMG，等待 Apple 接受后附加并验证公证票据。正式分发时使用生成的 `dist/OwnClip.dmg`。
+脚本会启用 Hardened Runtime，签名并提交 DMG，等待 Apple 接受后附加并验证公证票据。正式分发时使用生成的 `dist/OwnClip-<版本号>.dmg`。

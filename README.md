@@ -61,9 +61,9 @@
 
 需要 **macOS 14 或更高版本**。现有安装包面向 Apple Silicon；构建脚本支持按当前 Mac 架构编译，也可通过 `OWNCLIP_ARCH` 指定 `arm64` 或 `x86_64`。
 
-从 [GitHub Releases](https://github.com/Poole33/own-clip/releases/latest) 下载最新版本，或[直接下载 OwnClip.dmg](https://github.com/Poole33/own-clip/releases/latest/download/OwnClip.dmg)。
+从 [GitHub Releases](https://github.com/Poole33/own-clip/releases/latest) 下载最新版本的 DMG 安装包。
 
-1. 打开 `OwnClip.dmg`，将 `OwnClip.app` 拖入“应用程序”。
+1. 打开 DMG 安装包，将 `OwnClip.app` 拖入“应用程序”。
 2. 启动 OwnClip，按提示在“系统设置 → 隐私与安全性”中授予自动粘贴所需权限。
 3. 如系统提示访问剪贴板或启用输入监控，按引导完成授权。
 
@@ -82,7 +82,7 @@
 | 关闭当前窗口 | `Esc` / `⌘W` | OwnClip 窗口 |
 | 标记文件待移动 / 移动到目标目录 | `⌘X` / `⌘V` | Finder 文件剪切启用时 |
 
-可在“设置 → 快捷键”中修改快捷键；`Esc` 和 `⌘W` 保留为标准窗口操作。语言支持简体中文、English 和跟随系统，登录时自动启动可按需开启。
+可在“设置 → 快捷键”中修改快捷键；`Esc` 和 `⌘W` 保留为标准窗口操作。语言支持简体中文、English 和跟随系统，开机时自动启动可按需开启。
 
 ## 本地存储
 
@@ -103,7 +103,7 @@
 
 首次初始化会将固定的本地签名证书及私钥导入当前用户钥匙串，并设置代码签名信任，过程中可能出现系统确认窗口。后续构建复用同一签名身份。
 
-构建产物为 `dist/OwnClip.app`、`dist/OwnClip.dmg` 和 `dist/OwnClip.app.dSYM`。只构建应用与调试符号可使用 `./build.sh --app-only`。
+构建产物为 `dist/OwnClip.app`、`dist/OwnClip-<版本号>.dmg` 和 `dist/OwnClip.app.dSYM`。只构建应用与调试符号可使用 `./build.sh --app-only`。
 
 运行回归检查：
 

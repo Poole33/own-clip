@@ -1,3 +1,4 @@
+import AppKit
 import ServiceManagement
 import SwiftUI
 
@@ -32,6 +33,16 @@ struct PreferencesView: View {
             .padding([.horizontal, .bottom], 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack {
+                Spacer()
+                Button(AppText.text("退出 OwnClip")) { NSApp.terminate(nil) }
+                    .buttonStyle(.bordered)
+            }
+            .padding(.horizontal, 24)
+            .frame(height: 52)
+            .background(Color(nsColor: .windowBackgroundColor))
+        }
         .environment(\.locale, AppText.locale)
         .ignoresSafeArea(.container, edges: .top)
         .background { NativeScrollBehavior(mode: .verticalIndicators) }
@@ -39,18 +50,18 @@ struct PreferencesView: View {
 
     private var general: some View {
         Form {
-            Section(AppText.text("语言")) {
-                Picker(AppText.text("语言"), selection: Binding(get: { model.language }, set: model.setLanguage)) {
-                    ForEach(AppLanguage.allCases) { Text($0.title).tag($0) }
-                }
-            }
-            Section(AppText.text("启动")) {
-                Toggle(AppText.text("登录时自动启动 OwnClip"), isOn: Binding(get: { model.launchAtLogin }, set: model.setLaunchAtLogin))
+            Section(AppText.text("基础")) {
+                UpdateSettingsRow(updates: model.updates)
+                Toggle(AppText.text("开机时自动启动 OwnClip"), isOn: Binding(get: { model.launchAtLogin }, set: model.setLaunchAtLogin))
+                Toggle(AppText.text("菜单栏图标"), isOn: Binding(get: { model.menuBarIconVisible }, set: model.setMenuBarIconVisible))
                 if model.loginItemStatus == .requiresApproval {
                     Button(AppText.text("前往登录项设置并允许 OwnClip")) { model.openLoginItems() }
                 }
                 if let error = model.loginItemError {
                     Text(error.text).font(.caption).foregroundStyle(.red)
+                }
+                Picker(AppText.text("语言"), selection: Binding(get: { model.language }, set: model.setLanguage)) {
+                    ForEach(AppLanguage.allCases) { Text($0.title).tag($0) }
                 }
             }
             Section(AppText.History.name) {
@@ -86,14 +97,6 @@ struct PreferencesView: View {
                 }
             } header: {
                 Text(AppText.text("权限"))
-            } footer: {
-                if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
-                    Text(AppText.format("版本 %@", version))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                }
             }
         }
         .formStyle(.grouped)
@@ -190,6 +193,46 @@ struct PreferencesView: View {
             .fixedSize()
             .accessibilityLabel(AppText.format("%@选项", action.title))
         }
+    }
+}
+
+private struct UpdateSettingsRow: View {
+    @ObservedObject var updates: UpdateService
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 8) {
+                if case let .available(version, pageURL) = updates.state {
+                    Button {
+                        NSWorkspace.shared.open(pageURL)
+                    } label: {
+                        Label(AppText.text("前往下载"), systemImage: "arrow.up.right")
+                    }
+                    .fixedSize()
+                    status(AppText.format("新版本 %@ 可更新", version))
+                } else {
+                    Button(AppText.text("检查更新…")) { updates.check(manual: true) }
+                        .disabled(updates.state == .checking)
+                        .fixedSize()
+                    switch updates.state {
+                    case .checking: status(AppText.text("正在检查…"))
+                    case .upToDate: status(AppText.text("已是最新版本"))
+                    case .failed: status(AppText.text("暂时无法检查，请稍后重试"))
+                    case .idle, .available: EmptyView()
+                    }
+                }
+            }
+            .buttonStyle(.bordered)
+
+            if let version = updates.currentVersion {
+                status(AppText.format("当前版本 %@", version))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func status(_ text: String) -> some View {
+        Text(text).font(.caption).foregroundStyle(.secondary)
     }
 }
 

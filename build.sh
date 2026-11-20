@@ -66,11 +66,17 @@ done
 /usr/bin/codesign --verify --strict "$app"
 
 if [[ "${1:-}" != --app-only ]]; then
+    version="$(/usr/bin/plutil -extract CFBundleShortVersionString raw -expect string -o - "$app/Contents/Info.plist")"
+    if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+        printf 'Invalid CFBundleShortVersionString for DMG filename: %s\n' "$version" >&2
+        exit 1
+    fi
+    dmg_name="OwnClip-$version.dmg"
     staging="$work_dir/disk"
     mkdir -- "$staging"
     /usr/bin/ditto "$app" "$staging/OwnClip.app"
     /bin/ln -s /Applications "$staging/Applications"
-    dmg="$work_dir/OwnClip.dmg"
+    dmg="$work_dir/$dmg_name"
     /usr/bin/hdiutil create -quiet -ov -srcfolder "$staging" -volname OwnClip -format UDZO "$dmg"
     if [[ "$developer_id" == true ]]; then
         /usr/bin/codesign --sign "$signing_hash" --timestamp "$dmg"
@@ -84,7 +90,8 @@ if [[ "${1:-}" != --app-only ]]; then
         /usr/bin/xcrun stapler validate "$dmg"
     fi
     /usr/bin/hdiutil verify -quiet "$dmg"
-    /bin/mv -f -- "$dmg" "$output_dir/OwnClip.dmg"
+    /bin/mv -f -- "$dmg" "$output_dir/$dmg_name"
+    printf 'DMG: %s\n' "$output_dir/$dmg_name"
 fi
 
 /bin/rm -rf -- "$output_dir/OwnClip.app" "$output_dir/OwnClip.app.dSYM"

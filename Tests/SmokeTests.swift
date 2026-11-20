@@ -97,12 +97,13 @@ func check(_ condition: @autoclosure () throws -> Bool, _ message: String) throw
         try testPasteStack(text.summary(source: "Test"))
         try testLanguages(text: text, image: image)
         try testShortcuts()
+        try testMenuShortcuts()
         try testWindowPlacement()
         try testHistoryWheel()
         try testClipboardMonitor()
         try testPasteService()
         try testShortcutService()
-        print("PASS: clipboard formats, history retention, paste stack, shortcuts, window placement, history wheel routing, localization, clipboard monitoring, paste focus and shortcut service")
+        print("PASS: clipboard formats, history retention, paste stack, shortcuts, menu shortcuts, window placement, history wheel routing, localization, clipboard monitoring, paste focus and shortcut service")
     }
 
 }

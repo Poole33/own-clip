@@ -42,6 +42,26 @@ struct KeyBinding: Codable, Equatable {
             .filter { flags.contains($0.0) }.map(\.1).joined() + keyLabel
     }
 
+    /// AppKit draws these characters in the menu's native shortcut column.
+    var menuKeyEquivalent: String {
+        let namedKeys: [UInt16: Int] = [
+            36: NSCarriageReturnCharacter, 48: NSTabCharacter, 49: 0x20,
+            51: NSBackspaceCharacter, 53: 0x1B, 71: NSClearLineFunctionKey, 76: NSEnterCharacter,
+            114: NSHelpFunctionKey, 115: NSHomeFunctionKey, 116: NSPageUpFunctionKey,
+            117: NSDeleteCharacter, 119: NSEndFunctionKey, 121: NSPageDownFunctionKey,
+            123: NSLeftArrowFunctionKey, 124: NSRightArrowFunctionKey,
+            125: NSDownArrowFunctionKey, 126: NSUpArrowFunctionKey
+        ]
+        if let character = namedKeys[keyCode], let scalar = UnicodeScalar(character) {
+            return String(scalar)
+        }
+        if isFunctionKey, let number = Int(keyLabel.dropFirst()),
+           let scalar = UnicodeScalar(NSF1FunctionKey + number - 1) {
+            return String(scalar)
+        }
+        return keyLabel.lowercased()
+    }
+
     var carbonModifiers: UInt32 {
         let flags = NSEvent.ModifierFlags(rawValue: UInt(modifiers))
         return [(NSEvent.ModifierFlags.control, controlKey), (.option, optionKey), (.shift, shiftKey), (.command, cmdKey)]

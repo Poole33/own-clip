@@ -22,6 +22,7 @@ final class WindowCoordinator {
     private let ownPID = ProcessInfo.processInfo.processIdentifier
     private let settingsFocusLogger = Logger(subsystem: "local.ownclip.OwnClip", category: "SettingsFocus")
     private var settingsFocusDiagnosticsID = 0
+    private var settingsFocusRequested = false
     private var pasteFeedbackPanel: ClipPanel?
     private var dismissPasteFeedback: DispatchWorkItem?
 
@@ -50,6 +51,7 @@ final class WindowCoordinator {
     }
 
     func stopObserving() {
+        cancelSettingsFocus()
         stopObservingFocus()
         if let historyMoveObserver { NotificationCenter.default.removeObserver(historyMoveObserver) }
         if let stackMoveObserver { NotificationCenter.default.removeObserver(stackMoveObserver) }
@@ -61,6 +63,7 @@ final class WindowCoordinator {
     deinit { stopObserving() }
 
     func showHistory(model: AppController) {
+        cancelSettingsFocus()
         let panel = historyPanel ?? makeHistoryPanel(model: model)
         placeHistory(panel, layout: model.layout)
         panel.makeKeyAndOrderFront(nil)
@@ -115,6 +118,7 @@ final class WindowCoordinator {
     }
 
     func showStack(model: AppController, requestFocus: Bool) {
+        if requestFocus { cancelSettingsFocus() }
         let panel: ClipPanel
         if let current = stackPanel {
             panel = current
@@ -175,6 +179,8 @@ final class WindowCoordinator {
             controller.shouldCascadeWindows = false
             settingsWindowController = controller
         }
+        settingsFocusRequested = true
+        if window.isMiniaturized { window.deminiaturize(nil) }
         let movingBetweenSpaces = window.isVisible && !window.isOnActiveSpace
         if movingBetweenSpaces { window.orderOut(nil) }
         if let screen, !window.isVisible || window.screen != screen {
@@ -185,12 +191,15 @@ final class WindowCoordinator {
         }
         window.level = historyPanel?.isVisible == true ? .floating : .normal
         recordSettingsFocus("settings.open.beforePresentation")
-        // Follow Maccy's Settings controller: activate, show and make key, then order front.
-        NSApp.activate()
+        // This is an explicit user request to edit settings. Cooperative activate()
+        // can leave an accessory app inactive while another app owns activation.
+        NSApp.activate(ignoringOtherApps: true)
         recordSettingsFocus("settings.open.afterActivate")
         settingsWindowController?.showWindow(nil)
+        window.makeKeyAndOrderFront(nil)
         recordSettingsFocus("settings.open.afterShowWindow")
         window.orderFrontRegardless()
+        focusSettingsAfterActivation()
         recordSettingsFocus("settings.open.afterOrderFront")
         let request = settingsFocusDiagnosticsID
         for delay in [0.05, 0.25, 1.0] {
@@ -199,6 +208,20 @@ final class WindowCoordinator {
                 recordSettingsFocus("settings.open.after\(delay)s")
             }
         }
+    }
+
+    func focusSettingsAfterActivation() {
+        guard settingsFocusRequested, NSApp.isActive,
+              let window = settingsWindow, window.isVisible else { return }
+        settingsFocusRequested = false
+        // Activation is asynchronous. Finish the focus handoff only for this
+        // presentation, preserving any permission or confirmation sheet.
+        (window.attachedSheet ?? window).makeKeyAndOrderFront(nil)
+        recordSettingsFocus("settings.open.focusAfterActivation")
+    }
+
+    func cancelSettingsFocus() {
+        settingsFocusRequested = false
     }
 
     func recordSettingsFocus(_ phase: String) {

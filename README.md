@@ -103,7 +103,7 @@
 
 首次初始化会将固定的本地签名证书及私钥导入当前用户钥匙串，并设置代码签名信任，过程中可能出现系统确认窗口。后续构建复用同一签名身份。
 
-构建产物为 `dist/OwnClip.app`、`dist/OwnClip-<版本号>.dmg` 和 `dist/OwnClip.app.dSYM`。只构建应用与调试符号可使用 `./build.sh --app-only`。
+构建产物为 `dist/OwnClip.app`、`dist/OwnClip-<版本号>-<架构>.dmg` 和 `dist/OwnClip.app.dSYM`。DMG 文件名中的 `arm64` 表示 Apple Silicon，`x86_64` 表示 Intel，例如 `OwnClip-1.0.10-x86_64.dmg`。只构建应用与调试符号可使用 `./build.sh --app-only`。
 
 运行回归检查：
 

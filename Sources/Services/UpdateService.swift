@@ -141,8 +141,14 @@ final class UpdateService: ObservableObject {
         var version: String { tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName }
 
         var hasInstaller: Bool {
-            assets.contains { asset in
-                asset.state == "uploaded" && asset.size > 0 && (asset.name == "OwnClip.dmg" || asset.name == "OwnClip-\(version).dmg")
+            #if arch(x86_64)
+            let architecture = "x86_64"
+            #else
+            let architecture = "arm64"
+            #endif
+            let installerNames = ["OwnClip.dmg", "OwnClip-\(version).dmg", "OwnClip-\(version)-\(architecture).dmg"]
+            return assets.contains { asset in
+                asset.state == "uploaded" && asset.size > 0 && installerNames.contains(asset.name)
             }
         }
     }

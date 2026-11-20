@@ -71,7 +71,7 @@ if [[ "${1:-}" != --app-only ]]; then
         printf 'Invalid CFBundleShortVersionString for DMG filename: %s\n' "$version" >&2
         exit 1
     fi
-    dmg_name="OwnClip-$version.dmg"
+    dmg_name="OwnClip-$version-$architecture.dmg"
     staging="$work_dir/disk"
     mkdir -- "$staging"
     /usr/bin/ditto "$app" "$staging/OwnClip.app"

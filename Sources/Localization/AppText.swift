@@ -102,6 +102,8 @@ enum AppText {
         "取消": "Cancel",
         "清空": "Clear",
         "自动粘贴": "Automatic paste",
+        "授权已生效，可以开始使用自动粘贴。": "Access is active. You can now use automatic paste.",
+        "请在系统设置中确认 OwnClip 已开启，再重新检查权限。": "Make sure OwnClip is enabled in System Settings, then check access again.",
         "系统已授权，重启 OwnClip 后即可生效。": "Access granted. Restart OwnClip to apply it.",
         "当前进程仍未获得权限。如果系统开关已开启，请重启 OwnClip。": "Access has not taken effect. If OwnClip is enabled in System Settings, restart the app.",
         "重启 OwnClip": "Restart OwnClip",

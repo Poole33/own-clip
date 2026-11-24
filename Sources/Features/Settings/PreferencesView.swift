@@ -5,6 +5,8 @@ import SwiftUI
 enum SettingsTab { case general, shortcuts }
 
 struct PreferencesView: View {
+    private enum SectionID { case permissions }
+
     @ObservedObject var model: AppController
     @ViewState private var confirmClear = false
 
@@ -49,6 +51,21 @@ struct PreferencesView: View {
     }
 
     private var general: some View {
+        ScrollViewReader { proxy in
+            generalForm
+                .onChange(of: model.permissionSettingsFocusRequest, initial: true) { _, request in
+                    guard request > 0 else { return }
+                    // Let the form lay out before locating its permission section.
+                    DispatchQueue.main.async {
+                        guard model.permissionSettingsFocusRequest == request,
+                              model.settingsTab == .general else { return }
+                        proxy.scrollTo(SectionID.permissions, anchor: .bottom)
+                    }
+                }
+        }
+    }
+
+    private var generalForm: some View {
         Form {
             Section(AppText.text("基础")) {
                 UpdateSettingsRow(updates: model.updates)
@@ -85,7 +102,13 @@ struct PreferencesView: View {
             Section {
                 pastePermissions
                 if model.finderCutEnabled {
-                    LabeledContent(AppText.text("文件剪切"), value: model.accessibilityTrusted ? AppText.text("已启用") : AppText.text("未获得授权"))
+                    LabeledContent(AppText.text("文件剪切")) {
+                        if model.accessibilityTrusted {
+                            enabledPermissionStatus
+                        } else {
+                            Text(AppText.text("未获得授权"))
+                        }
+                    }
                     if !model.accessibilityTrusted { Button(AppText.text("打开辅助功能设置")) { model.requestAccessibility() } }
                 }
                 if model.directPaste && !model.contextKeysReady && model.contextKeysWanted {
@@ -98,6 +121,7 @@ struct PreferencesView: View {
             } header: {
                 Text(AppText.text("权限"))
             }
+            .id(SectionID.permissions)
         }
         .formStyle(.grouped)
         .alert(AppText.History.confirmClear, isPresented: $confirmClear) {
@@ -109,8 +133,18 @@ struct PreferencesView: View {
     }
 
     @ViewBuilder private var pastePermissions: some View {
-        LabeledContent(AppText.text("自动粘贴"), value: pastePermissionStatus)
-        if !model.directPaste {
+        LabeledContent(AppText.text("自动粘贴")) {
+            if model.directPaste && model.pastePermissionReview != .restartRequired {
+                enabledPermissionStatus
+            } else {
+                Text(pastePermissionStatus)
+            }
+        }
+        if model.restartedForPaste && model.directPaste && model.pastePermissionReview != .restartRequired {
+            Text(AppText.text("授权已生效，可以开始使用自动粘贴。"))
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        if !model.directPaste || model.pastePermissionReview.offersRestart {
             if model.pastePermissionReview.offersRestart {
                 Text(model.pastePermissionReview == .restartRequired
                      ? AppText.text("系统已授权，重启 OwnClip 后即可生效。")
@@ -125,10 +159,13 @@ struct PreferencesView: View {
                 Button(AppText.text("重新检查权限")) { model.reviewPasteAccess() }
                 Button(AppText.text("返回系统设置")) { model.requestPasteAccess() }
             } else {
-                Button(AppText.text("启用自动粘贴")) { model.requestPasteAccess() }
                 if model.restartedForPaste {
-                    Text(AppText.text("如果系统开关已开启，请移除旧授权条目，再添加当前版本的 OwnClip.app。"))
+                    Text(AppText.text("请在系统设置中确认 OwnClip 已开启，再重新检查权限。"))
                         .font(.caption).foregroundStyle(.secondary)
+                    Button(AppText.text("打开系统设置")) { model.requestPasteAccess() }
+                    Button(AppText.text("重新检查权限")) { model.reviewPasteAccess() }
+                } else {
+                    Button(AppText.text("启用自动粘贴")) { model.requestPasteAccess() }
                 }
             }
             if let error = model.restartError {
@@ -137,8 +174,15 @@ struct PreferencesView: View {
         }
     }
 
+    private var enabledPermissionStatus: some View {
+        Label(AppText.text("已启用"), systemImage: "checkmark.circle.fill")
+            .foregroundStyle(.green)
+    }
+
     private var pastePermissionStatus: String {
+        if model.pastePermissionReview == .restartRequired { return AppText.text("已授权，需重启") }
         if model.directPaste { return AppText.text("已启用") }
+        if model.restartedForPaste && model.pastePermissionReview == .idle { return AppText.text("权限尚未生效") }
         switch model.pastePermissionReview {
         case .idle: return AppText.text("未获得授权")
         case .checking: return AppText.text("等待系统授权")

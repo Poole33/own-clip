@@ -22,7 +22,8 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
     @Published private(set) var loginItemError: AppMessage?
     @Published private(set) var menuBarIconVisible = true
     @Published private(set) var finderCutEnabled = false
-    @Published private(set) var restartedForPaste = false
+    @Published private(set) var restartedForPaste = AppLaunch.reopenedForPaste
+    @Published private(set) var permissionSettingsFocusRequest = 0
     @Published private(set) var contextKeysReady = false
     @Published private(set) var contextKeysWanted = false
     @Published var settingsTab: SettingsTab = .general {
@@ -93,7 +94,6 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
                                                                 object: nil, queue: .main) { [weak self] _ in
             self?.refreshLanguage()
         }
-        restartedForPaste = AppLaunch.reopenedForPaste
         layout = preferences.string(forKey: "layout").flatMap(HistoryLayout.init(rawValue:)) ?? .strip
         days = min(7, max(1, preferences.object(forKey: "retentionDays") as? Int ?? 1))
         finderCutEnabled = preferences.bool(forKey: "finderCut")
@@ -136,7 +136,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
             if let active, active.processIdentifier != ProcessInfo.processInfo.processIdentifier {
                 windows.cancelSettingsFocus()
             }
-            permissions.observeActiveApplication(active)
+            permissions.observeActiveApplication(active?.bundleIdentifier)
         }
         windowObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification,
                                                                   object: nil, queue: .main) { [weak self] event in
@@ -151,14 +151,13 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
         timer.tolerance = 0.05
         RunLoop.main.add(timer, forMode: .common)
         pollTimer = timer
-        let firstPermissionPrompt = !preferences.bool(forKey: "didShowPasteAccessOnboarding")
-        if firstPermissionPrompt { preferences.set(true, forKey: "didShowPasteAccessOnboarding") }
-        if restartedForPaste || !preferences.bool(forKey: "didShowSettings") || (firstPermissionPrompt && !directPaste) {
+        if restartedForPaste || !preferences.bool(forKey: "didShowSettings") || !directPaste {
             preferences.set(true, forKey: "didShowSettings")
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
-                showSettings()
-                if firstPermissionPrompt && !restartedForPaste { showPasteAccessOnboarding() }
+                if restartedForPaste || !directPaste { showPermissionSettings() }
+                else { showSettings() }
+                showPasteAccessOnboarding()
             }
         }
         updates.check()
@@ -166,7 +165,14 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         guard pollTimer != nil else { return false }
-        showHistory()
+        permissions.reviewPasteAccess()
+        if !directPaste || pastePermissionReview == .restartRequired {
+            showPermissionSettings()
+            showPasteAccessOnboarding()
+            showPasteRestartPromptIfNeeded()
+        } else {
+            showHistory()
+        }
         return false
     }
 
@@ -175,7 +181,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
         windows.focusSettingsAfterActivation()
         refreshLanguage()
         recordSettingsFocus("application.didBecomeActive")
-        refreshPermissions()
+        permissions.reviewPasteAccess()
         refreshLoginItemStatus()
     }
 
@@ -358,6 +364,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
 
     func showPermissionSettings() {
         settingsTab = .general
+        permissionSettingsFocusRequest += 1
         if historyPanel?.isKeyWindow == true { showSettingsFromHistory() } else { showSettings() }
     }
 
@@ -728,7 +735,8 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     private func showPasteAccessOnboarding() {
-        guard !directPaste, let window = settingsWindow else { return }
+        guard permissions.needsAuthorizationPrompt, let window = settingsWindow,
+              window.attachedSheet == nil else { return }
         let alert = NSAlert()
         alert.messageText = AppText.text("开启自动粘贴")
         alert.informativeText = AppText.History.pastePermission
@@ -742,12 +750,14 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
 
     private func showPasteRestartPromptIfNeeded() {
         guard pasteRestartPromptPending else { return }
-        guard pastePermissionReview == .restartRequired, !directPaste else {
+        guard pastePermissionReview == .restartRequired else {
             pasteRestartPromptPending = false
             return
         }
         // Wait until the user returns, and let any existing sheet finish first.
-        guard NSApp.isActive, let window = settingsWindow, window.isVisible,
+        guard NSApp.isActive else { return }
+        if settingsWindow?.isVisible != true { showPermissionSettings() }
+        guard let window = settingsWindow, window.isVisible,
               window.attachedSheet == nil else { return }
         pasteRestartPromptPending = false
         let alert = NSAlert()

@@ -103,7 +103,8 @@ func check(_ condition: @autoclosure () throws -> Bool, _ message: String) throw
         try testClipboardMonitor()
         try testPasteService()
         try testShortcutService()
-        print("PASS: clipboard formats, history retention, paste stack, shortcuts, menu shortcuts, window placement, history wheel routing, localization, clipboard monitoring, paste focus and shortcut service")
+        try testPermissionService()
+        print("PASS: clipboard formats, history retention, paste stack, shortcuts, menu shortcuts, window placement, history wheel routing, localization, clipboard monitoring, paste focus, shortcut service and permission lifecycle")
     }
 
 }

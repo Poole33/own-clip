@@ -94,9 +94,9 @@ struct PreferencesView: View {
                 Button(AppText.History.clear, role: .destructive) { confirmClear = true }
                     .disabled(model.history.isEmpty)
             }
-            Section(AppText.text("剪切功能")) {
-                Toggle(AppText.text("Command + X 剪切文字和文件"), isOn: Binding(get: { model.finderCutEnabled }, set: model.setFinderCut))
-                Text(AppText.text("开启后，可像在 Windows 一样剪切 Finder 文件，再到目标文件夹按 ⌘V 完成移动。"))
+            Section(AppText.text("文件剪切")) {
+                Toggle(AppText.text("Finder 文件剪切"), isOn: Binding(get: { model.finderCutEnabled }, set: model.setFinderCut))
+                Text(AppText.text("选中文件按 ⌘X，进入目标文件夹按 ⌘V 完成移动。文字和文件名编辑使用系统原生剪切。"))
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {

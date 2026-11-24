@@ -17,10 +17,12 @@ final class PermissionService: ObservableObject {
     @Published private(set) var pasteboardDenied = false
 
     var onAccessChange: (() -> Void)?
+    var onRestartRequired: (() -> Void)?
     private let clipboard: ClipboardMonitor
     private var nextCheck: TimeInterval = 0
     private var checkUntil: TimeInterval = 0
     private var requestID: UUID?
+    private var restartPromptRequestID: UUID?
     private var settingsWasActive = false
     private var reviewInProgress = false
 
@@ -92,7 +94,13 @@ final class PermissionService: ObservableObject {
                 guard let self, requestID == request else { return }
                 reviewInProgress = false
                 refresh()
-                if !directPaste { pastePermissionReview = canPostAfterRestart ? .restartRequired : .restartSuggested }
+                if !directPaste {
+                    pastePermissionReview = canPostAfterRestart ? .restartRequired : .restartSuggested
+                    if canPostAfterRestart, restartPromptRequestID != request {
+                        restartPromptRequestID = request
+                        onRestartRequired?()
+                    }
+                }
             }
         }
     }

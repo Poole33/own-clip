@@ -77,6 +77,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
     private var historyTarget: NSRunningApplication?
     private var queuedPastes: [(target: pid_t, fallback: KeyBinding)] = []
     private var pasteScheduled = false
+    private var pasteRestartPromptPending = false
     private var lastHotKey: (ShortcutAction, TimeInterval)?
 
     var filtered: [ClipSummary] {
@@ -206,6 +207,10 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
             refreshPermissions()
         }
         permissions.onAccessChange = { [weak self] in self?.updateContextKeys() }
+        permissions.onRestartRequired = { [weak self] in
+            self?.pasteRestartPromptPending = true
+            self?.showPasteRestartPromptIfNeeded()
+        }
         finderMoves.beforeCopy = { [weak self] in self?.pollClipboard() }
         finderMoves.onCapture = { [weak self] payload in self?.save(payload) }
         finderMoves.onStatus = { [weak menuBar] message in menuBar?.showStatus(message) }
@@ -523,6 +528,7 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
         let now = ProcessInfo.processInfo.systemUptime
         if now >= nextPurge { prune() }
         permissions.refreshIfNeeded()
+        showPasteRestartPromptIfNeeded()
     }
 
     @discardableResult private func pollClipboard() -> ClipboardPayload? {
@@ -731,6 +737,27 @@ final class AppController: NSObject, NSApplicationDelegate, ObservableObject {
         alert.buttons[1].keyEquivalent = "\u{1b}"
         alert.beginSheetModal(for: window) { [weak self] response in
             if response == .alertFirstButtonReturn { self?.requestPasteAccess() }
+        }
+    }
+
+    private func showPasteRestartPromptIfNeeded() {
+        guard pasteRestartPromptPending else { return }
+        guard pastePermissionReview == .restartRequired, !directPaste else {
+            pasteRestartPromptPending = false
+            return
+        }
+        // Wait until the user returns, and let any existing sheet finish first.
+        guard NSApp.isActive, let window = settingsWindow, window.isVisible,
+              window.attachedSheet == nil else { return }
+        pasteRestartPromptPending = false
+        let alert = NSAlert()
+        alert.messageText = AppText.text("已授权，重启后生效")
+        alert.informativeText = AppText.text("重启 OwnClip 后，即可使用自动粘贴。")
+        alert.addButton(withTitle: AppText.text("立即重启"))
+        alert.addButton(withTitle: AppText.text("稍后"))
+        alert.buttons[1].keyEquivalent = "\u{1b}"
+        alert.beginSheetModal(for: window) { [weak self] response in
+            if response == .alertFirstButtonReturn { self?.restartForPastePermission() }
         }
     }
 
